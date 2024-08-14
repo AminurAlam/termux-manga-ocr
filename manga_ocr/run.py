@@ -2,6 +2,7 @@ import sys
 import time
 from pathlib import Path
 
+import os
 import fire
 import numpy as np
 import pyperclip
@@ -30,7 +31,10 @@ def process_and_write_results(mocr, img_or_path, write_to):
     logger.info(f"Text recognized in {t1 - t0:0.03f} s: {text}")
 
     if write_to == "clipboard":
-        pyperclip.copy(text)
+        # pyperclip.copy(text)
+        os.system(f"termux-clipboard-set {text}")
+        # os.system(f"termux-open 'https://www.deepl.com/en/translator#ja/en/{text}'")
+        # os.system(f"termux-open 'https://translate.google.com/?tl=en&op=translate&text={text}'")
     else:
         write_to = Path(write_to)
         if write_to.suffix != ".txt":
@@ -68,7 +72,6 @@ def run(
 
     if sys.platform not in ("darwin", "win32") and write_to == "clipboard":
         # Check if the system is using Wayland
-        import os
 
         if os.environ.get("WAYLAND_DISPLAY"):
             # Check if the wl-clipboard package is installed
@@ -121,16 +124,18 @@ def run(
         while True:
             for path in read_from.iterdir():
                 path_key = get_path_key(path)
-                if path_key not in old_paths:
-                    old_paths.add(path_key)
+                if str(path).startswith(".pending-"): continue
+                if path_key in old_paths: continue
+                old_paths.add(path_key)
 
-                    try:
-                        img = Image.open(path)
-                        img.load()
-                    except (UnidentifiedImageError, OSError) as e:
-                        logger.warning(f"Error while reading file {path}: {e}")
-                    else:
-                        process_and_write_results(mocr, img, write_to)
+                try:
+                    img = Image.open(path)
+                    img.load()
+                except (UnidentifiedImageError, OSError) as e:
+                    logger.warning(f"Error while reading file {path}: {e}")
+                else:
+                    os.system('am start -a "android.intent.action.VIEW" -n "us.spotco.fennec_dos/org.mozilla.gecko.BrowserApp" -d moz-extension://1b8b0816-4e58-476e-b8bb-e60b4afd60ec/search.html --activity-clear-task "us.spotco.fennec_dos"')
+                    process_and_write_results(mocr, img, write_to)
 
             time.sleep(delay_secs)
 
