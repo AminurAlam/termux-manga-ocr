@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 import fire
 import numpy as np
-import pyperclip
+# import pyperclip
 from PIL import Image
 from PIL import UnidentifiedImageError
 from loguru import logger
@@ -76,7 +76,8 @@ def run(
         if os.environ.get("WAYLAND_DISPLAY"):
             # Check if the wl-clipboard package is installed
             if os.system("which wl-copy > /dev/null") == 0:
-                pyperclip.set_clipboard("wl-clipboard")
+                # pyperclip.set_clipboard("wl-clipboard")
+                pass
             else:
                 msg = (
                     "Your session uses wayland and does not have wl-clipboard installed. "
@@ -134,7 +135,7 @@ def run(
                 except (UnidentifiedImageError, OSError) as e:
                     logger.warning(f"Error while reading file {path}: {e}")
                 else:
-                    os.system('am start -a "android.intent.action.VIEW" -n "us.spotco.fennec_dos/org.mozilla.gecko.BrowserApp" -d moz-extension://1b8b0816-4e58-476e-b8bb-e60b4afd60ec/search.html --activity-clear-task "us.spotco.fennec_dos"')
+                    # os.system('am start -a "android.intent.action.VIEW" -n "us.spotco.fennec_dos/org.mozilla.gecko.BrowserApp" -d moz-extension://1b8b0816-4e58-476e-b8bb-e60b4afd60ec/search.html --activity-clear-task "us.spotco.fennec_dos"')
                     process_and_write_results(mocr, img, write_to)
 
             time.sleep(delay_secs)
