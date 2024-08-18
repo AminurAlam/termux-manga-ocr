@@ -5,10 +5,8 @@ from pathlib import Path
 import os
 import fire
 import numpy as np
-# import pyperclip
 from PIL import Image
 from PIL import UnidentifiedImageError
-from loguru import logger
 
 from manga_ocr import MangaOcr
 
@@ -28,13 +26,10 @@ def process_and_write_results(mocr, img_or_path, write_to):
     text = mocr(img_or_path)
     t1 = time.time()
 
-    logger.info(f"Text recognized in {t1 - t0:0.03f} s: {text}")
+    print(f"took {t1 - t0:0.02f}s: {text}")
 
     if write_to == "clipboard":
-        # pyperclip.copy(text)
-        os.system(f"termux-clipboard-set {text}")
-        # os.system(f"termux-open 'https://www.deepl.com/en/translator#ja/en/{text}'")
-        # os.system(f"termux-open 'https://translate.google.com/?tl=en&op=translate&text={text}'")
+        os.system(f"termux-clipboard-set '{text}'")
     else:
         write_to = Path(write_to)
         if write_to.suffix != ".txt":
@@ -52,9 +47,7 @@ def run(
     read_from="clipboard",
     write_to="clipboard",
     pretrained_model_name_or_path="kha-white/manga-ocr-base",
-    force_cpu=False,
-    delay_secs=0.1,
-    verbose=False,
+    delay_secs=0.5,
 ):
     """
     Run OCR in the background, waiting for new images to appear either in system clipboard, or a directory.
@@ -63,82 +56,39 @@ def run(
     :param read_from: Specifies where to read input images from. Can be either "clipboard", or a path to a directory.
     :param write_to: Specifies where to save recognized texts to. Can be either "clipboard", or a path to a text file.
     :param pretrained_model_name_or_path: Path to a trained model, either local or from Transformers' model hub.
-    :param force_cpu: If True, OCR will use CPU even if GPU is available.
     :param verbose: If True, unhides all warnings.
     :param delay_secs: How often to check for new images, in seconds.
     """
 
-    mocr = MangaOcr(pretrained_model_name_or_path, force_cpu)
+    mocr = MangaOcr(pretrained_model_name_or_path)
 
-    if sys.platform not in ("darwin", "win32") and write_to == "clipboard":
-        # Check if the system is using Wayland
+    read_from = Path(read_from)
+    if not read_from.is_dir():
+        os.makedirs(read_from)
 
-        if os.environ.get("WAYLAND_DISPLAY"):
-            # Check if the wl-clipboard package is installed
-            if os.system("which wl-copy > /dev/null") == 0:
-                # pyperclip.set_clipboard("wl-clipboard")
-                pass
-            else:
-                msg = (
-                    "Your session uses wayland and does not have wl-clipboard installed. "
-                    "Install wl-clipboard for write in clipboard to work."
-                )
-                raise NotImplementedError(msg)
+    print(f"Reading from directory {read_from}")
 
-    if read_from == "clipboard":
-        from PIL import ImageGrab
+    old_paths = set()
+    for path in read_from.iterdir():
+        old_paths.add(get_path_key(path))
 
-        logger.info("Reading from clipboard")
-
-        img = None
-        while True:
-            old_img = img
+    while True:
+        for path in read_from.iterdir():
+            path_key = get_path_key(path)
+            if str(path).startswith(".pending-"): continue
+            if path_key in old_paths: continue
+            old_paths.add(path_key)
 
             try:
-                img = ImageGrab.grabclipboard()
-            except OSError as error:
-                if not verbose and "cannot identify image file" in str(error):
-                    # Pillow error when clipboard hasn't changed since last grab (Linux)
-                    pass
-                elif not verbose and "target image/png not available" in str(error):
-                    # Pillow error when clipboard contains text (Linux, X11)
-                    pass
-                else:
-                    logger.warning("Error while reading from clipboard ({})".format(error))
+                img = Image.open(path)
+                img.load()
+            except (UnidentifiedImageError, OSError) as e:
+                print(f"Error while reading file {path}: {e}")
             else:
-                if isinstance(img, Image.Image) and not are_images_identical(img, old_img):
-                    process_and_write_results(mocr, img, write_to)
+                os.system('am start -a "android.intent.action.VIEW" -n "us.spotco.fennec_dos/org.mozilla.gecko.BrowserApp" --activity-clear-task "us.spotco.fennec_dos" &>/dev/null')
+                process_and_write_results(mocr, img, write_to)
 
-            time.sleep(delay_secs)
-
-    else:
-        read_from = Path(read_from)
-        if not read_from.is_dir():
-            raise ValueError('read_from must be either "clipboard" or a path to a directory')
-
-        logger.info(f"Reading from directory {read_from}")
-
-        old_paths = set()
-        for path in read_from.iterdir():
-            old_paths.add(get_path_key(path))
-
-        while True:
-            for path in read_from.iterdir():
-                path_key = get_path_key(path)
-                if str(path).startswith(".pending-"): continue
-                if path_key in old_paths: continue
-                old_paths.add(path_key)
-
-                try:
-                    img = Image.open(path)
-                    img.load()
-                except (UnidentifiedImageError, OSError) as e:
-                    logger.warning(f"Error while reading file {path}: {e}")
-                else:
-                    # os.system('am start -a "android.intent.action.VIEW" -n "us.spotco.fennec_dos/org.mozilla.gecko.BrowserApp" -d moz-extension://1b8b0816-4e58-476e-b8bb-e60b4afd60ec/search.html --activity-clear-task "us.spotco.fennec_dos"')
-                    process_and_write_results(mocr, img, write_to)
-
-            time.sleep(delay_secs)
+        time.sleep(delay_secs)
 
 
 if __name__ == "__main__":
