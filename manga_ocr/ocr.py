@@ -8,7 +8,7 @@ from transformers import ViTImageProcessor, AutoTokenizer, VisionEncoderDecoderM
 
 class MangaOcr:
     def __init__(self, pretrained_model_name_or_path="kha-white/manga-ocr-base"):
-        print(f"Loading from {pretrained_model_name_or_path}... ", end='')
+        print(f"Loading from {pretrained_model_name_or_path}... ", end="")
         self.processor = ViTImageProcessor.from_pretrained(pretrained_model_name_or_path)
         self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path)
         self.model = VisionEncoderDecoderModel.from_pretrained(pretrained_model_name_or_path)
@@ -49,6 +49,7 @@ def post_process(text):
     text = text.replace("…", "...")
     text = text.replace(":", "...")
     text = re.sub("[・.]{2,}", lambda x: (x.end() - x.start()) * ".", text)
-    if original != text: print(f"raw: {text}")
+    if original != text:
+        print(f"raw: {text}")
 
     return text

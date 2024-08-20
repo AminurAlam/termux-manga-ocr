@@ -1,4 +1,3 @@
-import sys
 import time
 from pathlib import Path
 
@@ -75,8 +74,10 @@ def run(
     while True:
         for path in read_from.iterdir():
             path_key = get_path_key(path)
-            if str(path).startswith(".pending-"): continue
-            if path_key in old_paths: continue
+            if str(path).startswith(".pending-"):
+                continue
+            if path_key in old_paths:
+                continue
             old_paths.add(path_key)
 
             try:
@@ -85,7 +86,6 @@ def run(
             except (UnidentifiedImageError, OSError) as e:
                 print(f"Error while reading file {path}: {e}")
             else:
-                os.system('am start -a "android.intent.action.VIEW" -n "us.spotco.fennec_dos/org.mozilla.gecko.BrowserApp" --activity-clear-task "us.spotco.fennec_dos" &>/dev/null')
                 process_and_write_results(mocr, img, write_to)
 
         time.sleep(delay_secs)
