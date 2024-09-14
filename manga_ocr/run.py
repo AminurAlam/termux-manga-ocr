@@ -46,7 +46,7 @@ def run(
     read_from="clipboard",
     write_to="clipboard",
     pretrained_model_name_or_path="kha-white/manga-ocr-base",
-    delay_secs=0.5,
+    delay_secs=1.0,
 ):
     """
     Run OCR in the background, waiting for new images to appear either in system clipboard, or a directory.
@@ -60,6 +60,7 @@ def run(
     """
 
     mocr = MangaOcr(pretrained_model_name_or_path)
+    os.system("termux-vibrate -d 70 & sleep 0.15 && termux-vibrate -d 70 &")
 
     read_from = Path(read_from)
     if not read_from.is_dir():
@@ -74,19 +75,24 @@ def run(
     while True:
         for path in read_from.iterdir():
             path_key = get_path_key(path)
-            if str(path).startswith(".pending-"):
-                continue
+
             if path_key in old_paths:
                 continue
+
             old_paths.add(path_key)
+
+            if str(path).startswith(".pending-"):
+                continue
 
             try:
                 img = Image.open(path)
                 img.load()
-            except (UnidentifiedImageError, OSError) as e:
-                print(f"Error while reading file {path}: {e}")
+            except (UnidentifiedImageError, OSError):
+                pass
+                # print(f"skipping {path}")
             else:
                 process_and_write_results(mocr, img, write_to)
+                time.sleep(delay_secs * 5)
 
         time.sleep(delay_secs)
 
