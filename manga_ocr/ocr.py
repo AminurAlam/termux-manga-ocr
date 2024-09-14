@@ -1,4 +1,4 @@
-import re
+import time
 from pathlib import Path
 
 import jaconv
@@ -8,17 +8,19 @@ from transformers import ViTImageProcessor, AutoTokenizer, VisionEncoderDecoderM
 
 class MangaOcr:
     def __init__(self, pretrained_model_name_or_path="kha-white/manga-ocr-base"):
+        t0 = time.time()
         print(f"Loading from {pretrained_model_name_or_path}... ", end="")
         self.processor = ViTImageProcessor.from_pretrained(pretrained_model_name_or_path)
         self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path)
         self.model = VisionEncoderDecoderModel.from_pretrained(pretrained_model_name_or_path)
 
-        example_path = Path(__file__).parent / "assets/example.jpg"
-        if not example_path.is_file():
-            raise FileNotFoundError(f"Missing example image {example_path}")
-        self(example_path)
+        # example_path = Path(__file__).parent / "assets/example.jpg"
+        # if not example_path.is_file():
+        #     raise FileNotFoundError(f"Missing example image {example_path}")
+        # self(example_path)
 
-        print("OCR ready")
+        t1 = time.time()
+        print(f"OCR ready in {t1 - t0:0.02f}s")
 
     def __call__(self, img_or_path):
         if isinstance(img_or_path, str) or isinstance(img_or_path, Path):
@@ -46,9 +48,11 @@ def post_process(text):
     text = jaconv.h2z(text, ascii=True, digit=True)
 
     original = text
-    text = text.replace("…", "...")
-    text = text.replace(":", "...")
-    text = re.sub("[・.]{2,}", lambda x: (x.end() - x.start()) * ".", text)
+    text = text.replace("…", "")
+    text = text.replace(":", "")
+    text = text.replace("。", "")
+    text = text.replace("・", "")
+    # text = re.sub("[・.]{2,}", lambda x: (x.end() - x.start()) * ".", text)
     if original != text:
         print(f"raw: {text}")
 

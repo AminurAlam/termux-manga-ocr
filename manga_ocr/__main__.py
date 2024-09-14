@@ -4,7 +4,10 @@ from manga_ocr.run import run
 
 
 def main():
-    fire.Fire(run)
+    try:
+        fire.Fire(run)
+    except KeyboardInterrupt:
+        exit()
 
 
 if __name__ == "__main__":
