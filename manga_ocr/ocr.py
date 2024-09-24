@@ -12,7 +12,7 @@ class MangaOcr:
     def __init__(self, pretrained_model_name_or_path="kha-white/manga-ocr-base"):
         t0 = time.time()
         print(f"Loading from {pretrained_model_name_or_path}... ", end="")
-        self.processor = ViTImageProcessor.from_pretrained(pretrained_model_name_or_path)
+        self.processor: ViTImageProcessor = ViTImageProcessor.from_pretrained(pretrained_model_name_or_path)
         # explicit tokenizer_type works around transformers>=5.13 misdetecting the tokenizer class
         # for VisionEncoderDecoderModel configs and falling back to an incompatible fast-only backend
         self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path, tokenizer_type="bert-japanese")
@@ -43,7 +43,7 @@ class MangaOcr:
         return x
 
     def _preprocess(self, img):
-        pixel_values = self.processor(img, return_tensors="pt").pixel_values
+        pixel_values: ViTImageProcessor = self.processor(img, return_tensors="pt").pixel_values
         return pixel_values.squeeze()
 
 
@@ -51,13 +51,10 @@ def post_process(text):
     text = "".join(text.split())
     text = jaconv.h2z(text, ascii=True, digit=True)
 
-    original = text
     text = text.replace("…", "")
     text = text.replace(":", "")
     text = text.replace("。", "")
     text = text.replace("・", "")
     # text = re.sub("[・.]{2,}", lambda x: (x.end() - x.start()) * ".", text)
-    if original != text:
-        print(f"raw: {text}")
 
     return text

@@ -88,11 +88,11 @@ def run(
                 img = Image.open(path)
                 img.load()
             except (UnidentifiedImageError, OSError):
-                pass
-                # print(f"skipping {path}")
+                # pass
+                print(f"skipping {path}")
             else:
                 process_and_write_results(mocr, img, write_to)
-                time.sleep(delay_secs * 5)
+                # TODO: cleanup image file
 
         time.sleep(delay_secs)
 
